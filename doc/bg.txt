@@ -1,0 +1,49 @@
+*bg.txt*  A background job manager for vim
+
+Author:  Rob Pilling <https://github.com/bobrippling>
+License: Same terms as Vim itself.
+
+INTRODUCTION                                    *bg*
+
+Tired of waiting for `grep` on very large directory trees? Or for `make` to
+complete while you want to edit somewhere else? Look no further.
+
+COMMANDS                                        *bg-commands*
+
+                                                *:Bggrep*
+:Bg {args}              Run an arbitrary command and pipe its output into the
+                        quickfix window. If the output matches 'errorformat',
+                        it will be highlighted and navigable via |:cnext|, etc.
+
+                                                *:Bgadd*
+:Bgadd {args}           Like |:Bg|, but append the output to the quickfix-list.
+
+                                                *:Bgstop*
+:Bgstop                 Stop all background jobs.
+
+                                                *:Bgjobs*
+:Bgjobs                 List all background jobs
+
+                                                *:Bgclear*
+:Bgclear                Clear the quickfix-list.
+
+Convenience Commands ~
+                                                *:Bggrep*
+:Bggrep {args}          Like |:grep|, but run `grep` in the background.
+                        Respects 'grepprg' and its "$*" placeholder.
+
+                                                *:Bggrepadd*
+:Bggrepadd {args}       Like |:Bggrep|, but append the output to the
+                        quickfix-list.
+
+                                                *:Bgmake*
+:Bgmake {args}          Like `:make`, but run `make` in the background.
+                        Respects 'makeprg' and its "$*" placeholder.
+
+ABOUT                                           *bg-about*
+
+Grab the latest version or report a bug on GitHub:
+
+https://github.com/bobrippling/vim-bg
+
+ vim:tw=78:et:ft=help:norl:
