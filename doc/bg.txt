@@ -40,6 +40,26 @@ Convenience Commands ~
 :Bgmake {args}          Like `:make`, but run `make` in the background.
                         Respects 'makeprg' and its "$*" placeholder.
 
+LOCATION LIST                                   *bg-location-list*
+
+The location list can be used instead of the quickfix list, by using the |:Bgl|
+commands instead of their |:Bg| counterparts.
+
+                                                *:Bgl*
+:Bgl {args}             See |:Bggrep|
+                                                *:Bgladd*
+:Bgladd {args}          See |:Bgladd|
+                                                *:Bglstop*
+:Bglstop                See |:Bglstop|
+                                                *:Bglclear*
+:Bglclear               See |:Bglclear|
+                                                *:Bglgrep*
+:Bglgrep {args}         See |:Bglgrep|
+                                                *:Bglgrepadd*
+:Bglgrepadd {args}      See |:Bglgrepadd|
+                                                *:Bglmake*
+:Bglmake {args}         See |:Bglmake|
+
 ABOUT                                           *bg-about*
 
 Grab the latest version or report a bug on GitHub:

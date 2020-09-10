@@ -1,6 +1,6 @@
 # bg.vim
 
-Run any command in the background, reading its output into the quickfix window.
+Run any command in the background, reading its output into the quickfix window or location list.
 
 Wrappers for `grep` (`:Bggrep`) and `make` (`:Bgmake`) exist, along with commands for querying and controlling jobs.
 

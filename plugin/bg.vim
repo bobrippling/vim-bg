@@ -1,16 +1,26 @@
+" [{ desc, handle, cmd, loclist_winid }, ...]
+"                       ^~~~~~~~~~~~~ or 0
 let s:jobs = []
 
-function! s:bg_append(line)
+function! s:bg_append(loclist_winid, line)
 	let line = a:line
 	let line = substitute(line, '\r$', '', 'g')
-	caddexpr line
+
+	if a:loclist_winid
+		let flags = "a" " add to list
+		call setloclist(a:loclist_winid, [], flags, {
+		\   'lines': [line],
+		\ })
+	else
+		caddexpr line
+	endif
 endfunction
 
-function! s:bg_exit_cb(job, exitcode)
+function! s:bg_exit_cb(loclist_winid, job, exitcode)
 	let i = 0
 	for job in s:jobs
 		if job.handle == a:job
-			call s:bg_append('--- ' . job.desc . ' exited with ' . a:exitcode . ' ---')
+			call s:bg_append(a:loclist_winid, '--- ' . job.desc . ' exited with ' . a:exitcode . ' ---')
 			call remove(s:jobs, i)
 			break
 		endif
@@ -18,51 +28,51 @@ function! s:bg_exit_cb(job, exitcode)
 	endfor
 endfunction
 
-function! s:bg_out_cb(ch, line)
+function! s:bg_out_cb(loclist_winid, ch, line)
 	" standard out
-	call s:bg_append(a:line)
+	call s:bg_append(a:loclist_winid, a:line)
 endfunction
 
-function! s:bg_err_cb(ch, line)
+function! s:bg_err_cb(loclist_winid, ch, line)
 	" standard error
-	call s:bg_append(a:line)
+	call s:bg_append(a:loclist_winid, a:line)
 endfunction
 
-function! s:bg_outerr_cb_nvim(jobid, data, event, self)
+function! s:bg_outerr_cb_nvim(loclist_winid, jobid, data, event, self)
 	" let eof = (a:data == [''])
 
 	let a:self.incomplete_line .= a:data[0]
 
 	" we've completed the last line
 	if !empty(a:self.incomplete_line)
-		call s:bg_out_cb(a:jobid, a:self.incomplete_line)
+		call s:bg_out_cb(a:loclist_winid, a:jobid, a:self.incomplete_line)
 	endif
 
 	for ent in a:data[1:-2]
-		call s:bg_out_cb(a:jobid, ent)
+		call s:bg_out_cb(a:loclist_winid, a:jobid, ent)
 	endfor
 
 	let a:self.incomplete_line = a:data[-1]
 endfunction
 
-function! s:bg_out_cb_nvim(jobid, data, event) dict
-	call s:bg_outerr_cb_nvim(a:jobid, a:data, a:event, self)
+function! s:bg_out_cb_nvim(loclist_winid, jobid, data, event) dict
+	call s:bg_outerr_cb_nvim(a:loclist_winid, a:jobid, a:data, a:event, self)
 endfunction
 
-function! s:bg_err_cb_nvim(jobid, data, event) dict
-	call s:bg_outerr_cb_nvim(a:jobid, a:data, a:event, self)
+function! s:bg_err_cb_nvim(loclist_winid, jobid, data, event) dict
+	call s:bg_outerr_cb_nvim(a:loclist_winid, a:jobid, a:data, a:event, self)
 endfunction
 
-function! s:bg_exit_cb_nvim(jobid, data, event) dict
+function! s:bg_exit_cb_nvim(loclist_winid, jobid, data, event) dict
 	if !empty(self.incomplete_line)
-		call s:bg_out_cb(a:jobid, self.incomplete_line)
+		call s:bg_out_cb(a:loclist_winid, a:jobid, self.incomplete_line)
 	endif
 
 	let exitcode = a:data
-	call s:bg_exit_cb(a:jobid, exitcode)
+	call s:bg_exit_cb(a:loclist_winid, a:jobid, exitcode)
 endfunction
 
-function! s:bg_start(cmd_maybelist, cleanslate, desc, mods)
+function! s:bg_start(cmd_maybelist, cleanslate, use_loclist, desc, mods)
 	let cmd_maybelist = a:cmd_maybelist
 	if type(cmd_maybelist) == type('')
 		let cmdlist = split(&shell) + split(&shellcmdflag) + [cmd_maybelist]
@@ -70,24 +80,33 @@ function! s:bg_start(cmd_maybelist, cleanslate, desc, mods)
 		let cmdlist = cmd_maybelist
 	endif
 
-	call setqflist(
-	\   [],
-	\   a:cleanslate ? ' ' : 'a',
-	\   { 'title' : join(cmdlist) }
-	\ )
-
-	if empty(a:mods)
-		rightbelow copen
+	if a:use_loclist
+		let opencmd = "lopen"
+		let loclist_winid = win_getid()
+		call setloclist(
+		\   0,
+		\   [],
+		\   a:cleanslate ? ' ' : 'a',
+		\   { 'title' : join(cmdlist) }
+		\ )
 	else
-		exec a:mods "copen"
+		let opencmd = "copen"
+		let loclist_winid = 0
+		call setqflist(
+		\   [],
+		\   a:cleanslate ? ' ' : 'a',
+		\   { 'title' : join(cmdlist) }
+		\ )
 	endif
+
+	exec a:mods . "rightbelow " . opencmd
 	wincmd p
 
 	if has('nvim')
 		let opts = {
-		\   'on_stdout': function('s:bg_out_cb_nvim'),
-		\   'on_stderr': function('s:bg_err_cb_nvim'),
-		\   'on_exit': function('s:bg_exit_cb_nvim'),
+		\   'on_stdout': function('s:bg_out_cb_nvim', [loclist_winid]),
+		\   'on_stderr': function('s:bg_err_cb_nvim', [loclist_winid]),
+		\   'on_exit': function('s:bg_exit_cb_nvim', [loclist_winid]),
 		\   'incomplete_line': '',
 		\}
 		let jobid = jobstart(cmdlist, opts)
@@ -106,9 +125,9 @@ function! s:bg_start(cmd_maybelist, cleanslate, desc, mods)
 		\ {
 		\   'out_mode': 'nl',
 		\   'in_io': 'null',
-		\   'out_cb': function('s:bg_out_cb'),
-		\   'err_cb': function('s:bg_err_cb'),
-		\   'exit_cb': function('s:bg_exit_cb'),
+		\   'out_cb': function('s:bg_out_cb', [loclist_winid]),
+		\   'err_cb': function('s:bg_err_cb', [loclist_winid]),
+		\   'exit_cb': function('s:bg_exit_cb', [loclist_winid]),
 		\})
 		if job_status(job) == 'fail'
 			throw "couldn't start job"
@@ -120,21 +139,30 @@ function! s:bg_start(cmd_maybelist, cleanslate, desc, mods)
 	\ 'handle': handle,
 	\ 'cmd': cmdlist,
 	\ 'desc': a:desc,
+	\ 'loclist_winid': loclist_winid,
 	\ })
 endfunction
 
-function! s:bg_stop()
+function! s:bg_stop(use_loclist)
+	let newlist = []
+
 	for job in s:jobs
+		if !!job.loclist_winid != a:use_loclist
+			call add(newlist, job)
+			continue
+		endif
+
 		if has('nvim')
 			call jobstop(job.handle)
 		else
 			call job_stop(job.handle)
 		endif
 	endfor
-	let s:jobs = []
+
+	let s:jobs = newlist
 endfunction
 
-function! s:bg_builtin(builtin, args, cleanslate, mods)
+function! s:bg_builtin(builtin, args, cleanslate, use_loclist, mods)
 	let desc = a:builtin . ' ' . a:args
 	let prg = substitute(a:builtin, '\\$*', a:args, 'g')
 	if prg ==# a:builtin
@@ -143,34 +171,49 @@ function! s:bg_builtin(builtin, args, cleanslate, mods)
 		let prg .= ' ' . a:args
 	endif
 
-	call s:bg_start(prg, a:cleanslate, desc, a:mods)
+	call s:bg_start(prg, a:cleanslate, a:use_loclist, desc, a:mods)
 endfunction
 
 function! s:bg_jobs()
 	for job in s:jobs
+		let windesc = ""
+		if job.loclist_winid
+			let windesc = " winid: " . job.loclist_winid
+		endif
 		if has('nvim')
-			echo "job: cmd: " . job.desc
+			echo "job: cmd: " . job.desc . windesc
 		else
-			echo "job: " . job.handle . " cmd: " . job.desc
+			echo "job: " . job.handle . " cmd: " . job.desc . windesc
 		endif
 	endfor
 endfunction
 
-function! s:bg_clear()
-	call setqflist([])
+function! s:bg_clear(use_loclist)
+	if a:use_loclist
+		call setloclist(0, [])
+	else
+		call setqflist([])
+	endif
 endfunction
 
-command! -nargs=+ -complete=shellcmd Bg call s:bg_start(<q-args>, 1, <q-args>, <q-mods>)
-command! -nargs=+ -complete=shellcmd Bgadd call s:bg_start(<q-args>, 0, <q-args>, <q-mods>)
+command! -nargs=+ -complete=shellcmd Bg call s:bg_start(<q-args>, 1, 0, <q-args>, <q-mods>)
+command! -nargs=+ -complete=shellcmd Bgl call s:bg_start(<q-args>, 1, 1, <q-args>, <q-mods>)
+command! -nargs=+ -complete=shellcmd Bgadd call s:bg_start(<q-args>, 0, 0, <q-args>, <q-mods>)
+command! -nargs=+ -complete=shellcmd Bgladd call s:bg_start(<q-args>, 0, 1, <q-args>, <q-mods>)
 
-command! Bgstop call s:bg_stop()
+command! Bgstop call s:bg_stop(0)
+command! Bglstop call s:bg_stop(1)
 
 command! Bgjobs call s:bg_jobs()
 
-command! Bgclear call s:bg_clear()
+command! Bgclear call s:bg_clear(0)
+command! Bglclear call s:bg_clear(1)
 
 " makeprg and grepprg:
-command! -nargs=+ -complete=file Bggrep call s:bg_builtin(&grepprg, <q-args>, 1, <q-mods>)
-command! -nargs=+ -complete=file Bggrepadd call s:bg_builtin(&grepprg, <q-args>, 0, <q-mods>)
+command! -nargs=+ -complete=file Bggrep call s:bg_builtin(&grepprg, <q-args>, 1, 0, <q-mods>)
+command! -nargs=+ -complete=file Bglgrep call s:bg_builtin(&grepprg, <q-args>, 1, 1, <q-mods>)
+command! -nargs=+ -complete=file Bggrepadd call s:bg_builtin(&grepprg, <q-args>, 0, 0, <q-mods>)
+command! -nargs=+ -complete=file Bglgrepadd call s:bg_builtin(&grepprg, <q-args>, 0, 1, <q-mods>)
 
-command! -nargs=* -complete=file Bgmake call s:bg_builtin(&makeprg, <q-args>, 1, <q-mods>)
+command! -nargs=* -complete=file Bgmake call s:bg_builtin(&makeprg, <q-args>, 1, 0, <q-mods>)
+command! -nargs=* -complete=file Bglmake call s:bg_builtin(&makeprg, <q-args>, 1, 1, <q-mods>)
