@@ -99,8 +99,11 @@ function! s:bg_start(cmd_maybelist, cleanslate, use_loclist, desc, mods)
 		\ )
 	endif
 
+	let orig_win = winnr()
 	exec a:mods . "rightbelow " . opencmd
-	wincmd p
+	if winnr() != orig_win
+		wincmd p
+	endif
 
 	if has('nvim')
 		let opts = {
