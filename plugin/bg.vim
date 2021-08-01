@@ -166,15 +166,15 @@ function! s:bg_stop(use_loclist)
 endfunction
 
 function! s:bg_builtin(builtin, args, cleanslate, use_loclist, mods)
-	let desc = a:builtin . ' ' . a:args
-	let prg = substitute(a:builtin, '\\$*', a:args, 'g')
+	let prg = substitute(a:builtin, '\$\*', a:args, 'g')
+
 	if prg ==# a:builtin
 		" no change made - &makeprg (for example) doesn't contain '$*',
 		" so we tack on the end:
 		let prg .= ' ' . a:args
 	endif
 
-	call s:bg_start(prg, a:cleanslate, a:use_loclist, desc, a:mods)
+	call s:bg_start(prg, a:cleanslate, a:use_loclist, prg, a:mods)
 endfunction
 
 function! s:bg_jobs()
