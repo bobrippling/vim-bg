@@ -6,13 +6,16 @@ function! s:bg_append(loclist_winid, line)
 	let line = a:line
 	let line = substitute(line, '\r$', '', 'g')
 
+	let flags = "a" " add to list
 	if a:loclist_winid
-		let flags = "a" " add to list
 		call setloclist(a:loclist_winid, [], flags, {
 		\   'lines': [line],
 		\ })
 	else
-		caddexpr line
+		"caddexpr line " doesn't work when in cmd window
+		call setqflist([], flags, {
+		\   'lines': [line],
+		\ })
 	endif
 endfunction
 
