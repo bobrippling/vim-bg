@@ -23,7 +23,7 @@ function! s:bg_exit_cb(loclist_winid, job, exitcode)
 	let i = 0
 	for job in s:jobs
 		if job.handle == a:job
-			call s:bg_append(a:loclist_winid, '--- ' . job.desc . ' exited with ' . a:exitcode . ' ---')
+			call s:bg_append(a:loclist_winid, '[' . job.desc . ' exited with ' . a:exitcode . ']')
 			call remove(s:jobs, i)
 			break
 		endif
