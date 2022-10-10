@@ -169,12 +169,14 @@ function! s:bg_stop(use_loclist)
 endfunction
 
 function! s:bg_builtin(builtin, args, cleanslate, use_loclist, mods)
-	let prg = substitute(a:builtin, '\$\*', a:args, 'g')
+	" must escape before substitute() starts messing with backslashes, etc
+	let arg_str = fnameescape(a:args)
+	let prg = substitute(a:builtin, '\$\*', arg_str, 'g')
 
 	if prg ==# a:builtin
 		" no change made - &makeprg (for example) doesn't contain '$*',
 		" so we tack on the end:
-		let prg .= ' ' . a:args
+		let prg .= ' ' . arg_str
 	endif
 
 	call s:bg_start(prg, a:cleanslate, a:use_loclist, prg, a:mods)
