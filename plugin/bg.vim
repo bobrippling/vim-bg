@@ -209,15 +209,15 @@ command! -nargs=+ -complete=shellcmd Bgl call s:bg_start(<q-args>, 1, 1, <q-args
 command! -nargs=+ -complete=shellcmd Bgadd call s:bg_start(<q-args>, 0, 0, <q-args>, <q-mods>)
 command! -nargs=+ -complete=shellcmd Bgladd call s:bg_start(<q-args>, 0, 1, <q-args>, <q-mods>)
 
-command! Bgstop call s:bg_stop(0)
-command! Bglstop call s:bg_stop(1)
+command! -bar Bgstop call s:bg_stop(0)
+command! -bar Bglstop call s:bg_stop(1)
 
-command! Bgjobs call s:bg_jobs()
+command! -bar Bgjobs call s:bg_jobs()
 
-command! Bgclear call s:bg_clear(0)
-command! Bglclear call s:bg_clear(1)
+command! -bar Bgclear call s:bg_clear(0)
+command! -bar Bglclear call s:bg_clear(1)
 
-" makeprg and grepprg:
+" makeprg and grepprg - no -bar, since we want `|` included in regex
 command! -nargs=+ -complete=file Bggrep call s:bg_builtin(&grepprg, <q-args>, 1, 0, <q-mods>)
 command! -nargs=+ -complete=file Bglgrep call s:bg_builtin(&grepprg, <q-args>, 1, 1, <q-mods>)
 command! -nargs=+ -complete=file Bggrepadd call s:bg_builtin(&grepprg, <q-args>, 0, 0, <q-mods>)
