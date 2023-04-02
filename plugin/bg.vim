@@ -29,6 +29,8 @@ function! s:bg_exit_cb(loclist_winid, job, exitcode)
 		endif
 		let i = i + 1
 	endfor
+
+	doautocmd ShellCmdPost bggrep
 endfunction
 
 function! s:bg_out_cb(loclist_winid, ch, line)
