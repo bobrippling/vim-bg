@@ -1,5 +1,9 @@
-" [{ desc, handle, cmd, loclist_winid }, ...]
-"                       ^~~~~~~~~~~~~ or 0
+" {
+"   desc: string,
+"   handle: <opaque>,
+"   cmd: string[],
+"   loclist_winid: <winid> | 0,
+" }[]
 let s:jobs = []
 
 function! s:bg_append(loclist_winid, line)
@@ -21,16 +25,22 @@ endfunction
 
 function! s:bg_exit_cb(loclist_winid, job, exitcode)
 	let i = 0
+	let j = 0
 	for job in s:jobs
 		if job.handle == a:job
 			call s:bg_append(a:loclist_winid, '[' . job.desc . ' exited with ' . a:exitcode . ']')
+			let j = job
 			call remove(s:jobs, i)
 			break
 		endif
 		let i = i + 1
 	endfor
 
-	doautocmd ShellCmdPost bggrep
+	if j isnot 0
+		let cmd = join(j.cmd)
+		execute 'doautocmd ShellCmdPost' cmd
+		execute 'doautocmd QuickFixCmdPost' cmd
+	endif
 endfunction
 
 function! s:bg_out_cb(loclist_winid, ch, line)
@@ -84,6 +94,8 @@ function! s:bg_start(cmd_maybelist, cleanslate, use_loclist, desc, mods)
 	else
 		let cmdlist = cmd_maybelist
 	endif
+
+	execute 'doautocmd QuickFixCmdPre' join(cmdlist)
 
 	if a:use_loclist
 		let opencmd = "lopen"
