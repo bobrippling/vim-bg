@@ -38,8 +38,8 @@ function! s:bg_exit_cb(loclist_winid, job, exitcode)
 
 	if j isnot 0
 		let cmd = join(j.cmd)
-		execute 'doautocmd ShellCmdPost' cmd
-		execute 'doautocmd QuickFixCmdPost' cmd
+		call s:autocmd("ShellCmdPost", cmd)
+		call s:autocmd("QuickFixCmdPost", cmd)
 	endif
 endfunction
 
@@ -95,7 +95,7 @@ function! s:bg_start(cmd_maybelist, cleanslate, use_loclist, desc, mods)
 		let cmdlist = cmd_maybelist
 	endif
 
-	execute 'doautocmd QuickFixCmdPre' join(cmdlist)
+	call s:autocmd("QuickFixCmdPre", join(cmdlist))
 
 	if a:use_loclist
 		let opencmd = "lopen"
@@ -216,6 +216,10 @@ function! s:bg_clear(use_loclist)
 	else
 		call setqflist([])
 	endif
+endfunction
+
+function! s:autocmd(aucmd, arg)
+	execute 'doautocmd' a:aucmd escape(a:arg, '|')
 endfunction
 
 command! -nargs=+ -complete=shellcmd Bg call s:bg_start(<q-args>, 1, 0, <q-args>, <q-mods>)
